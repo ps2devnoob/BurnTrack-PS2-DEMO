@@ -22,7 +22,7 @@ Render.setView(60.0, 5.0, 4000.0);
 const seta = new Image("Source/HUD/seta.png");
 const speed = new Image("Source/HUD/speed.png");
 
-let drivingsound1 = Sound.load("Source/Sound/soundtrack.wav")
+let soundtrack = Sound.load("Source/Sound/soundtrack.wav")
 
 const carmesh = new RenderData("Source/car/1/car.obj");
 const car_object = new RenderObject(carmesh);
@@ -82,7 +82,7 @@ Camera.rotation(0.0, 0.0, 0.0);
 const pad = Pads.get(0);
 const cianoClaro = Color.new(255, 220, 180, 255);
 
-Sound.play(drivingsound1)
+Sound.play(soundtrack)
 
 let ee_info = System.getCPUInfo();
 
