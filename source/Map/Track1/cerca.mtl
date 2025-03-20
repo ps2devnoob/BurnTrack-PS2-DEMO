@@ -1,0 +1,12 @@
+# Blender 3.4.0 MTL File: 'untitled.blend'
+# www.blender.org
+
+newmtl Fence.002
+Ns 32.000008
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+illum 2
+map_Kd Source/Map/Track1/Image_3.png
+map_d Source/Map/Track1/Image_3.png
