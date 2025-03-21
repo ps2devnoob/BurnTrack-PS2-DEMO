@@ -4,11 +4,6 @@ const pipelines = [
     "SPECULAR"
 ];
 
-const font = new Font("default");
-font.scale = 0.6;
-font.outline = 1.0;
-font.outline_color = Color.new(0, 0, 0);
-
 Screen.setFrameCounter(true);
 Screen.setVSync(true);
 
@@ -19,6 +14,67 @@ Screen.setMode(canvas);
 
 Render.setView(60.0, 5.0, 4000.0);
 
+export class Control {
+    constructor(controlPort, deadzone) {
+        this.controlPort = controlPort;
+        this.deadzone = deadzone;
+        this.currentPad = Pads.get(controlPort);
+        this.oldPad = null;
+    }
+
+    getIsPressed(button) {
+        return this.currentPad.btns & button;
+    }
+
+    getJustPressed(button) {
+        return (this.currentPad.btns & button) && !(this.oldPad & button);
+    }
+
+    getLeftAnalogueIsUp() {
+        return this.currentPad.ly < -this.deadzone;
+    }
+
+    getRightAnalogueIsUp() {
+        return this.currentPad.ry < -this.deadzone;
+    }
+
+    getLeftAnalogueIsDown() {
+        return this.currentPad.ly > this.deadzone;
+    }
+
+    getRightAnalogueIsDown() {
+        return this.currentPad.ry > this.deadzone;
+    }
+
+    getLeftAnalogueIsLeft() {
+        return this.currentPad.lx > this.deadzone; 
+    }
+
+    getRightAnalogueIsLeft() {
+        return this.currentPad.rx > this.deadzone; 
+    }
+
+    getLeftAnalogueIsRight() {
+        return this.currentPad.lx < -this.deadzone; 
+    }
+
+    getRightAnalogueIsRight() {
+        return this.currentPad.rx < -this.deadzone; 
+    }
+
+    update() {
+        this.oldPad = this.currentPad;
+        this.currentPad = Pads.get(this.controlPort);
+    }
+}
+
+const playerControl = new Control(0, 25);  
+
+const font = new Font("default");
+font.scale = 0.6;
+font.outline = 1.0;
+font.outline_color = Color.new(0, 0, 0);
+
 const seta = new Image("Source/HUD/seta.png");
 const speed = new Image("Source/HUD/speed.png");
 
@@ -27,7 +83,7 @@ let soundtrack = Sound.load("Source/Sound/soundtrack.wav")
 const carmesh = new RenderData("Source/car/1/car.obj");
 const car_object = new RenderObject(carmesh);
 car_object.position = { x: 0.0, y: 0.0, z: 0.0 };
-carmesh.pipeline = 2;
+carmesh.pipeline = 0;
 carmesh.textures.forEach(texture => {
     texture.filter = LINEAR;
 });
@@ -35,7 +91,7 @@ carmesh.textures.forEach(texture => {
 const plane_mesh = new RenderData("Source/Map/Track1/track.obj");
 const plane_object = new RenderObject(plane_mesh);
 plane_object.position = { x: 0.0, y: 0.0, z: 0.0 };
-plane_mesh.pipeline = 2;
+plane_mesh.pipeline = 0;
 plane_mesh.textures.forEach(texture => {
     texture.filter = LINEAR;
 });
@@ -43,7 +99,7 @@ plane_mesh.textures.forEach(texture => {
 const fence_mesh = new RenderData("Source/Map/Track1/cerca.obj");
 const fence_object = new RenderObject(fence_mesh);
 fence_object.position = { x: 0.0, y: 0.0, z: 0.0 };
-fence_mesh.pipeline = 2;
+fence_mesh.pipeline = 0;
 fence_mesh.getTexture(0).filter = LINEAR;
 
 let playerPosition = { x: 0.0, y: 0.0, z: 0.0 };
@@ -88,52 +144,49 @@ let ee_info = System.getCPUInfo();
 
 let free_mem = `RAM: ${Math.floor(System.getMemoryStats().used / 1048576)}MB / ${Math.floor(ee_info.RAMSize / 1048576)}MB`;
 let free_vram = Screen.getFreeVRAM();
-let isDrifting = false;
-let isDoingSpin = false;
 
 
 while (true) {
-    pad.update();
+    playerControl.update();
 
     Screen.clear(cianoClaro);
     Camera.update();
 
-    let rx = ((pad.rx > 25 || pad.rx < -25) ? pad.rx : 0) / 10240.0;
-    let ry = ((pad.ry > 25 || pad.ry < -25) ? pad.ry : 0) / 10240.0;
+    let rx = playerControl.getRightAnalogueIsLeft() ? -0.002 : (playerControl.getRightAnalogueIsRight() ? 0.002 : 0);
+    let ry = playerControl.getRightAnalogueIsUp() ? -0.002 : (playerControl.getRightAnalogueIsDown() ? 0.002 : 0);
 
-    cameraYaw += rx * 0.02;
-    cameraPitch = Math.max(PITCH_MIN, Math.min(PITCH_MAX, cameraPitch - ry * 0.02));
+    cameraYaw += rx * 10;
+    cameraPitch = Math.max(PITCH_MIN, Math.min(PITCH_MAX, cameraPitch - ry * 10));
 
-    if (pad.pressed(Pads.CROSS)) {
+    if (playerControl.getIsPressed(Pads.CROSS)) {
         carSpeed = Math.min(maxSpeed, carSpeed + acceleration);
         setaAngle = Math.min(fullRotation, setaAngle + rotationSpeed);
-    }
-
-    let turnInput = (Math.abs(pad.lx) > 20) ? (-pad.lx / 128.0) : 0.0; 
-    targetRotation += turnInput * turnSpeed * 2;
-    
-    carTilt = Math.max(-maxTilt, Math.min(maxTilt, carTilt + turnInput * 0.01));
-    
-    if (turnInput === 0) {
-        carTilt *= 0.9;
-    }
-
-    
-    if (!pad.pressed(Pads.CROSS)) {
-        if (carSpeed > 0) {
-            carSpeed *= (1 - friction);
-        }
+    } else {
+        carSpeed *= (1 - friction);
+        if (carSpeed < 0.001) carSpeed = 0;
         setaAngle = Math.max(0, setaAngle - rotationSpeed * 2);
     }
-    
+
+    let turnInput = (carSpeed > 0) ? 
+        (playerControl.getLeftAnalogueIsLeft() ? -1 : (playerControl.getLeftAnalogueIsRight() ? 1 : 0)) 
+        : 0;
+
+    if (carSpeed > 0) {
+        targetRotation += turnInput * turnSpeed * 2;
+        carTilt = Math.max(-maxTilt, Math.min(maxTilt, carTilt + turnInput * 0.01));
+    }
+
+    if (turnInput === 0) carTilt *= 0.9;
 
     playerRotation += (targetRotation - playerRotation) * rotationLerpFactor;
 
     let forwardX = Math.sin(playerRotation);
     let forwardZ = Math.cos(playerRotation);
 
-    playerPosition.x += forwardX * carSpeed;
-    playerPosition.z += forwardZ * carSpeed;
+    if (carSpeed > 0) {
+        playerPosition.x += forwardX * carSpeed;
+        playerPosition.z += forwardZ * carSpeed;
+    }
 
     const cameraX = playerPosition.x - forwardX * cameraDistance;
     const cameraZ = playerPosition.z - forwardZ * cameraDistance;
@@ -146,7 +199,6 @@ while (true) {
     car_object.rotation = { x: 0.0, y: playerRotation, z: carTilt };
 
     seta.angle = setaAngle;
-
     car_object.render();
     plane_object.render();
     fence_object.render();
