@@ -1,0 +1,17 @@
+-------------------------------------------------------------------
+
+Blender Users:
+
+1. Click the "Textures" tab.
+
+2. Scroll down to "Image Mapping"
+
+3. Check X under "Mirror" (check Y if necessary)
+
+4. Leave X & Y at 1.
+
+5. Scroll down to "Influence"
+
+6. Make sure "Alpha" is checked and leave it at 1.
+
+-------------------------------------------------------------------
