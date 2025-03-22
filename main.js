@@ -76,7 +76,7 @@ while (true) {
     menuoption1.draw(457, 191);
     menuoption2.draw(457, 230);
 
-    font.print(430, 415, "All rights reserved to Daniel Santos.");
+
 
     if (pad.justPressed(Pads.UP)) {
         selectedOption = (selectedOption === 0) ? 1 : 0;
